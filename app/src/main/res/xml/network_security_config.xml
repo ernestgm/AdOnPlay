@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">192.168.1.181</domain>
+        <domain includeSubdomains="true">194.164.64.82</domain>
+        <domain includeSubdomains="true">192.168.1.230</domain>
+        <domain includeSubdomains="true">47.204.0.63</domain>
+        <domain includeSubdomains="true">desa-backscreen.tocasoft.com</domain>
+        <domain includeSubdomains="true">desa-backscreen.geniusdevelops.com</domain>
+        <domain includeSubdomains="true">centrifugue.tocasoft.com</domain>
+        <domain includeSubdomains="true">geniusdevelops.com</domain>
+        <domain includeSubdomains="true">google.com</domain>
+        <trust-anchors>
+            <certificates src="user" />
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

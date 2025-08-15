@@ -17,13 +17,90 @@ android {
 
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     buildTypes {
-        release {
+        debug {
+            applicationIdSuffix = ".debug"
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        release {
+            applicationIdSuffix = ".release"
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+
+    productFlavors {
+        create("prod") {
+            buildConfigField("String", "ENV", "\"Prod\"")
+            buildConfigField("String", "BASE_URL", "\"\"")
+            buildConfigField("String", "WS_BASE_URL", "\"\"")
+            buildConfigField(
+                "String", "PLAYER_BASE_URL",
+                "\"http://10.0.2.2:3001\""
+            )
+            buildConfigField(
+                "String", "PLAYER_DOMAIN",
+                "\"10.0.2.2\""
+            )
+            dimension = "api"
+        }
+        create("desa") {
+            buildConfigField("String", "ENV", "\"Dev\"")
+            buildConfigField("String", "BASE_URL", "\"\"")
+            buildConfigField("String", "WS_BASE_URL", "\"\"")
+            buildConfigField(
+                "String", "PLAYER_BASE_URL",
+                "\"http://10.0.2.2:3001\""
+            )
+            buildConfigField(
+                "String", "PLAYER_DOMAIN",
+                "\"10.0.2.2\""
+            )
+            dimension = "api"
+        }
+        create("dev") {
+            buildConfigField("String", "ENV", "\"\"")
+            buildConfigField(
+                "String", "BASE_URL",
+                "\"http://10.0.2.2:9000/api/v1/\""
+            )
+            buildConfigField(
+                "String", "PLAYER_BASE_URL",
+                "\"http://10.0.2.2:3001\""
+            )
+            buildConfigField(
+                "String", "PLAYER_DOMAIN",
+                "\"10.0.2.2:3001\""
+            )
+            buildConfigField(
+                "String", "WS_BASE_URL",
+                "\"ws://10.0.2.2:9000/cable/\""
+            )
+            dimension = "api"
+        }
+    }
+
+    applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val output = this
+            val project = "adonplay"
+            val flavor = variant.productFlavors[0].name
+            val versionName = variant.versionName
+            val apkName = "${project}-${flavor}-${versionName}.apk"
+            (output as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
+                apkName
         }
     }
     compileOptions {
@@ -36,6 +113,8 @@ android {
     buildFeatures {
         compose = true
     }
+
+    flavorDimensions += listOf("api")
 }
 
 dependencies {
@@ -48,9 +127,12 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.tv.foundation)
     implementation(libs.androidx.tv.material)
+    implementation(libs.androidx.material3.android)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
     implementation(libs.retrofit)
+    implementation(libs.converter.gson)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.converter.gson)
     androidTestImplementation(platform(libs.androidx.compose.bom))
