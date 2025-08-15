@@ -1,0 +1,4 @@
+<resources>
+
+    <style name="Theme.AdOnPlay" parent="Theme.AppCompat.DayNight.NoActionBar" />
+</resources>
