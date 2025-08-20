@@ -50,7 +50,6 @@ fun App(
     var msg by remember { mutableStateOf("") }
     var deviceVerifyCode by remember { mutableStateOf<DeviceVerifyCode?>(null) }
     var deviceToken by remember { mutableStateOf("") }
-    var showPLayerWebView by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
         // Effect is triggered when HomeScreen is displayed
@@ -69,10 +68,55 @@ fun App(
             }
             if (s.token != null) {
                 deviceToken = s.token
-                showPLayerWebView = true
+                deviceVerifyCode?.let {
+                    PlayerScreen(
+                        device = it,
+                        token = deviceToken
+                    )
+                }
             } else {
                 msg = "Your device is not registered. Contact the administrator."
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(all = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Image(
+                            modifier = Modifier
+                                .width(300.dp)
+                                .padding(all = 20.dp),
+                            painter = painterResource(id = R.drawable.ic_error),
+                            contentDescription = ""
+                        )
+
+                        Text(
+                            text = "Device ID: ${deviceVerifyCode?.device_id}",
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            style = MaterialTheme.typography.displaySmall
+                        )
+                        Text(
+                            text = "Device Code: ${deviceVerifyCode?.code}",
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                        Spacer(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(30.dp)
+                        )
+                        ErrorWithButton(text = msg, modifier = Modifier.fillMaxSize()) {
+                            coroutineScope.launch {
+                                appViewModel.verifyDevice(deviceUtils.getDeviceId())
+                            }
+                        }
+                    }
+                }
             }
+
         }
 
         is AppUiState.Loading -> {
@@ -92,52 +136,5 @@ fun App(
         }
 
         else -> {}
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(all = 16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        if (showPLayerWebView) {
-            deviceVerifyCode?.let {
-                PlayerScreen(
-                    device = it,
-                    token = deviceToken
-                )
             }
-        } else {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Image(
-                    modifier = Modifier
-                        .width(300.dp)
-                        .padding(all = 20.dp),
-                    painter = painterResource(id = R.drawable.ic_error),
-                    contentDescription = ""
-                )
-
-                Text(
-                    text = "Device ID: ${deviceVerifyCode?.device_id}",
-                    modifier = Modifier.padding(bottom = 8.dp),
-                    style = MaterialTheme.typography.displayMedium
-                )
-                Text(
-                    text = "Device Code: ${deviceVerifyCode?.code}",
-                    modifier = Modifier.padding(bottom = 8.dp),
-                    style = MaterialTheme.typography.labelMedium
-                )
-                Spacer(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(30.dp)
-                )
-                Text(
-                    text = msg,
-                )
-            }
-        }
-    }
 }

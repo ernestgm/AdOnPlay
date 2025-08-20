@@ -1,16 +1,14 @@
 package com.geniusdevelops.adonplay.app.views.components
 
-import android.os.Build
 import android.util.Log
 import android.webkit.CookieManager
-import android.webkit.JavascriptInterface
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
-import com.geniusdevelops.adonplay.BuildConfig
 
 @Composable
 fun WebViewWithCookies(url: String, cookies: Map<String, String>) {
@@ -18,13 +16,18 @@ fun WebViewWithCookies(url: String, cookies: Map<String, String>) {
         modifier = Modifier.fillMaxSize(),
         factory = { context ->
             WebView(context).apply {
-                settings.domStorageEnabled = true
                 settings.javaScriptEnabled = true
-                settings.useWideViewPort = true
+                settings.domStorageEnabled = true
+                settings.allowFileAccess = true
+                settings.allowContentAccess = true
+                settings.cacheMode = WebSettings.LOAD_DEFAULT
+                settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                 settings.loadWithOverviewMode = true
+                settings.useWideViewPort = true
+                settings.userAgentString =
+                    "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 Chrome/95.0.4638.74 Mobile Safari/537.36"
 
                 WebView.setWebContentsDebuggingEnabled(true)
-
                 val cookieManager = CookieManager.getInstance()
                 cookieManager.setAcceptCookie(true)
                 cookieManager.setAcceptThirdPartyCookies(this, true)
