@@ -5,15 +5,38 @@ import android.webkit.CookieManager
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.viewinterop.AndroidView
+import com.geniusdevelops.adonplay.ui.theme.common.Loading
 
 @Composable
-fun WebViewWithCookies(url: String, cookies: Map<String, String>) {
+fun WebViewWithCookies(
+    url: String,
+    cookies: Map<String, String>
+) {
+    var pageLoaded by remember { mutableStateOf(0f) }
+
+    if (pageLoaded == 0F) {
+        Loading(
+            text = "",
+            modifier = Modifier
+                .absoluteOffset()
+                .fillMaxSize()
+        )
+    }
+
     AndroidView(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .alpha(pageLoaded),
         factory = { context ->
             WebView(context).apply {
                 settings.javaScriptEnabled = true
@@ -24,8 +47,7 @@ fun WebViewWithCookies(url: String, cookies: Map<String, String>) {
                 settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                 settings.loadWithOverviewMode = true
                 settings.useWideViewPort = true
-                settings.userAgentString =
-                    "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 Chrome/95.0.4638.74 Mobile Safari/537.36"
+                //settings.userAgentString = "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 Chrome/95.0.4638.74 Mobile Safari/537.36"
 
                 WebView.setWebContentsDebuggingEnabled(true)
                 val cookieManager = CookieManager.getInstance()
@@ -57,6 +79,7 @@ fun WebViewWithCookies(url: String, cookies: Map<String, String>) {
                     override fun onPageFinished(view: WebView?, url: String?) {
                         super.onPageFinished(view, url)
                         Log.d("Cookies", "✅ URL cargada: $url")
+                        pageLoaded = 1F
                     }
                 }
 

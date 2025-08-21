@@ -40,11 +40,13 @@ fun Loading(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = text,
-                style = style,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
+            if (text.isNotEmpty()) {
+                Text(
+                    text = text,
+                    style = style,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
             CircularProgressIndicator(
                 modifier = Modifier
                     .padding(20.dp),
