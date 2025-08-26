@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -25,7 +26,7 @@ fun WebViewWithCookies(
     url: String,
     cookies: Map<String, String>
 ) {
-    var pageLoaded by remember { mutableStateOf(0f) }
+    var pageLoaded by remember { mutableFloatStateOf(0f) }
 
     if (pageLoaded == 0F) {
         Loading(
@@ -54,6 +55,7 @@ fun WebViewWithCookies(
                 settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                 settings.loadWithOverviewMode = true
                 settings.useWideViewPort = true
+                settings.mediaPlaybackRequiresUserGesture = false
 
                 WebView.setWebContentsDebuggingEnabled(true)
                 val cookieManager = CookieManager.getInstance()

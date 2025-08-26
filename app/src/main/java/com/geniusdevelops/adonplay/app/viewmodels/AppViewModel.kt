@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.geniusdevelops.adonplay.app.api.requests.DeviceVerifyCodeRequest
 import com.geniusdevelops.adonplay.app.api.responses.DeviceVerifyCode
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -38,7 +39,7 @@ class AppViewModel : ViewModel() {
     }
 
     private fun showException(e: Exception) {
-        //FirebaseCrashlytics.getInstance().recordException(e)
+        FirebaseCrashlytics.getInstance().recordException(e)
         when (e) {
             is UnresolvedAddressException -> {
                 _uiState.value = AppUiState.Error("Network Error: Check your internet connection.")
