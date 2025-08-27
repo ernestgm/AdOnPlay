@@ -2,5 +2,6 @@ package com.geniusdevelops.adonplay.app.api.responses
 
 data class DeviceVerifyCodeResponse(
     val device: DeviceVerifyCode,
-    val token: String?
+    val token: String?,
+    val portrait: Boolean?
 )

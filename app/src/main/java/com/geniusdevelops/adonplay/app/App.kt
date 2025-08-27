@@ -71,7 +71,8 @@ fun App(
                 deviceVerifyCode?.let {
                     PlayerScreen(
                         device = it,
-                        token = deviceToken
+                        token = deviceToken,
+                        portrait = s.portrait ?: false
                     )
                 }
             } else {

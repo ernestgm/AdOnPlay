@@ -11,12 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.geniusdevelops.adonplay.ui.theme.common.Loading
@@ -41,9 +39,6 @@ fun WebViewWithCookies(
         modifier = Modifier
             .fillMaxSize()
             .padding(0.dp)
-            .onGloballyPositioned { layoutCoordinates ->
-                Log.d("Height Layout", layoutCoordinates.size.height.toString())
-            }
             .alpha(pageLoaded),
         factory = { context ->
             WebView(context).apply {
@@ -86,8 +81,6 @@ fun WebViewWithCookies(
                 webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView?, url: String?) {
                         super.onPageFinished(view, url)
-                        Log.d("Height View", view?.height.toString())
-                        Log.d("Cookies", "✅ URL cargada: $url")
                         pageLoaded = 1F
                     }
                 }
@@ -95,5 +88,9 @@ fun WebViewWithCookies(
                 // Iniciar verificación
                 loadIfCookiesSet()
             }
-        })
+        },
+        update = {
+            it.invalidate()
+        }
+    )
 }

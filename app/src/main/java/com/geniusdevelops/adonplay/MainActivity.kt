@@ -35,10 +35,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
+import com.geniusdevelops.adonplay.app.websocket.StatusActionsChannel
 
 class MainActivity : ComponentActivity() {
     private lateinit var deviceUtils: DeviceUtils
-    private lateinit var cableClient: CableClient
+    private lateinit var statusActionsChannel: StatusActionsChannel
     private val serviceScope = CoroutineScope(Dispatchers.IO)
 
     @RequiresApi(Build.VERSION_CODES.M)
@@ -60,7 +61,7 @@ class MainActivity : ComponentActivity() {
             requestDisableBatteryOptimizationForApp(this)
         }
 
-        startCableClient()
+        subscribeToStatusActions()
         enableActiveScreen()
         startWDService()
 
@@ -120,7 +121,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        stopCableClient()
+        stopStatusActions()
         AppStateProvider.setAppStopped()
         disableActiveScreen()
         Firebase.performance.newTrace("app_destroy").trace {
@@ -130,37 +131,39 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onRestart() {
-        startCableClient()
+        subscribeToStatusActions()
         enableActiveScreen()
         super.onRestart()
     }
 
     override fun onResume() {
-        startCableClient()
+        subscribeToStatusActions()
         enableActiveScreen()
         super.onResume()
     }
 
     override fun onPause() {
-        stopCableClient()
+        stopStatusActions()
         disableActiveScreen()
         super.onPause()
     }
 
-    private fun startCableClient() {
+    private fun subscribeToStatusActions() {
         Firebase.performance.newTrace("app_cable_connect").trace {
             putAttribute("deviceId", deviceUtils.getDeviceId())
         }
-        cableClient = CableClient(deviceUtils.getDeviceId())
-        cableClient.connect()
+        statusActionsChannel = StatusActionsChannel(deviceUtils.getDeviceId())
+        serviceScope.launch {
+            statusActionsChannel.connect()
+        }
     }
 
-    private fun stopCableClient() {
+    private fun stopStatusActions() {
         Firebase.performance.newTrace("app_cable_disconnect").trace {
             putAttribute("deviceId", deviceUtils.getDeviceId())
         }
-        if (::cableClient.isInitialized) {
-            cableClient.disconnect()
+        if (::statusActionsChannel.isInitialized) {
+            statusActionsChannel.disconnect()
         }
     }
 

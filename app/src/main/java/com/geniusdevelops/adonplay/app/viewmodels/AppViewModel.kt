@@ -24,7 +24,11 @@ class AppViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     val verifyCode = response.body()
                     _uiState.value =
-                        AppUiState.Ready(deviceVerify = verifyCode?.device, verifyCode?.token)
+                        AppUiState.Ready(
+                            deviceVerify = verifyCode?.device,
+                            verifyCode?.token,
+                            verifyCode?.portrait
+                        )
                 }
             } catch (e: IOException) {
                 // Maneja errores de red (ej. sin conexión a internet)
@@ -57,6 +61,7 @@ sealed interface AppUiState {
     data class Error(val msg: String = "") : AppUiState
     data class Ready(
         val deviceVerify: DeviceVerifyCode?,
-        val token: String?
+        val token: String?,
+        val portrait: Boolean? = false
     ) : AppUiState
 }
