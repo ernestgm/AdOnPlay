@@ -7,11 +7,9 @@
         <domain includeSubdomains="true">194.164.64.82</domain>
         <domain includeSubdomains="true">192.168.1.230</domain>
         <domain includeSubdomains="true">47.204.0.63</domain>
-        <domain includeSubdomains="true">desa-backscreen.tocasoft.com</domain>
-        <domain includeSubdomains="true">desa-backscreen.geniusdevelops.com</domain>
-        <domain includeSubdomains="true">centrifugue.tocasoft.com</domain>
         <domain includeSubdomains="true">geniusdevelops.com</domain>
         <domain includeSubdomains="true">google.com</domain>
+        <domain includeSubdomains="true">googleapis.com</domain>
         <trust-anchors>
             <certificates src="user" />
             <certificates src="system" />

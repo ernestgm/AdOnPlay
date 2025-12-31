@@ -1,6 +1,5 @@
 package com.geniusdevelops.adonplay
 
-import CableClient
 import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
@@ -15,11 +14,8 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.tv.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Surface
 import com.geniusdevelops.adonplay.app.App
@@ -36,6 +32,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
 import com.geniusdevelops.adonplay.app.websocket.StatusActionsChannel
+import com.google.firebase.crashlytics.FirebaseCrashlytics
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     private lateinit var deviceUtils: DeviceUtils
@@ -64,6 +62,7 @@ class MainActivity : ComponentActivity() {
         subscribeToStatusActions()
         enableActiveScreen()
         startWDService()
+        checkIsWacthDogRunning()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             checkPermissionOverlay()
@@ -79,6 +78,51 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    private fun checkIsWacthDogRunning() {
+        serviceScope.launch {
+            while (true) {
+                delay(120000)
+                isWDRunning()
+            }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    private fun isWDRunning() {
+        if (!checkWatchDogStatus()) {
+            println("WatchDog Not Running")
+            Firebase.performance.newTrace("watchdog_app_not_running").trace {
+                // Update scenario.
+                putAttribute("deviceId", deviceUtils.getDeviceId())
+            }
+            FirebaseCrashlytics.getInstance()
+                .log("WatchDog not Running ${deviceUtils.getDeviceId()}")
+            startWDService()
+        } else {
+            println("WatchDog Running")
+        }
+    }
+
+    private fun checkWatchDogStatus(): Boolean {
+        var running = false
+        val uri = Uri.parse("content://com.geniusdevelop.watchdog.provider/app_a_state")
+        val cursor = contentResolver.query(uri, null, null, null, null)
+
+        cursor?.let {
+            if (it.moveToFirst()) {
+                val appState = it.getInt(it.getColumnIndexOrThrow("appState"))
+                if (appState == 1) {
+                    running = true
+                }
+            }
+            it.close()
+        } ?: run {
+            println("I can verify WatchDog state")
+        }
+        return running
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
