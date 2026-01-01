@@ -55,7 +55,7 @@
         </receiver>
         <provider
             android:name=".app.provider.AppStateProvider"
-            android:authorities="com.geniusdevelop.adonplay.provider"
+            android:authorities="com.geniusdevelops.adonplay.provider"
             android:exported="true"
             android:grantUriPermissions="true" />
 

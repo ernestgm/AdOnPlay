@@ -10,7 +10,7 @@ import android.net.Uri
 class AppStateProvider : ContentProvider() {
 
     companion object {
-        const val AUTHORITY = "com.geniusdevelop.adonplay.provider"
+        const val AUTHORITY = "com.geniusdevelops.adonplay.provider"
         val CONTENT_URI: Uri = Uri.parse("content://$AUTHORITY/app_a_state")
 
         private const val APP_STATE_RUNNING = 1
