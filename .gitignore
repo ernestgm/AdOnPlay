@@ -15,6 +15,6 @@
 .cxx
 local.properties
 /.idea/AndroidProjectSystem.xml
-/desa
-/dev
-/prod
+/app/dev/
+/app/prod/
+/app/desa/
