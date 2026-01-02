@@ -12,35 +12,7 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 
 class DevicesActionsChannel(deviceId: String) : CableClient(deviceId) {
-    fun connect(onMessage: (Map<String, Any?>?) -> Unit = {}, onError: (Throwable) -> Unit = {}) {
-        webSocket = client.newWebSocket(request, object : WebSocketListener() {
-            override fun onOpen(webSocket: WebSocket, response: Response) {
-                Log.d("ChangeDevicesActionsChannel", "Connected!")
-
-                val subscribeMessage = """
-                    {
-                      "command": "subscribe",
-                      "identifier": "{\"channel\":\"ChangeDevicesActionsChannel\"}"
-                    }
-                """.trimIndent()
-
-                webSocket.send(subscribeMessage)
-            }
-
-            override fun onMessage(webSocket: WebSocket, text: String) {
-                Log.d("ChangeDevicesActionsChannel", "Message: $text")
-                onMessage(parseJsonToMap(text))
-            }
-
-            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                Log.d("ChangeDevicesActionsChannel", "Closed: $reason")
-            }
-
-            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                Firebase.crashlytics.recordException(t)
-                Log.e("ChangeDevicesActionsChannel", "Error: ${t.message}", t)
-                onError(t)
-            }
-        })
+    fun connect(onMessage: (Map<String, Any?>?) -> Unit, onError: (Throwable) -> Unit) {
+        connect("DevicesActionsChannel", onMessage, onError)
     }
 }
