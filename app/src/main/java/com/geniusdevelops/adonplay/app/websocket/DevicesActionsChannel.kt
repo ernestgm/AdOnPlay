@@ -13,6 +13,6 @@ import okhttp3.WebSocketListener
 
 class DevicesActionsChannel(deviceId: String) : CableClient(deviceId) {
     fun connect(onMessage: (Map<String, Any?>?) -> Unit, onError: (Throwable) -> Unit) {
-        connect("DevicesActionsChannel", onMessage, onError)
+        connect("ChangeDevicesActionsChannel", onMessage, onError)
     }
 }
