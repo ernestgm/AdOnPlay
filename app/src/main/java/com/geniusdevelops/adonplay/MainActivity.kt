@@ -1,14 +1,15 @@
 package com.geniusdevelops.adonplay
 
+import android.annotation.SuppressLint
 import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
@@ -16,6 +17,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.core.app.ActivityCompat
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Surface
 import com.geniusdevelops.adonplay.app.App
@@ -40,7 +42,6 @@ class MainActivity : ComponentActivity() {
     private lateinit var statusActionsChannel: StatusActionsChannel
     private val serviceScope = CoroutineScope(Dispatchers.IO)
 
-    @RequiresApi(Build.VERSION_CODES.M)
     @OptIn(ExperimentalTvMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,6 +55,13 @@ class MainActivity : ComponentActivity() {
             }
         })
 
+        val isRestarted = intent.getBooleanExtra("is_restarted", false)
+        if (isRestarted) {
+            // Opcional: Mostrar un mensaje al usuario o no intentar la operación que falló
+            Toast.makeText(this, "La aplicación se reinició tras un error", Toast.LENGTH_SHORT)
+                .show()
+        }
+
         if (!isBatteryOptimizationIgnored(baseContext)) {
             println("Not isBatteryOptimizationIgnored")
             requestDisableBatteryOptimizationForApp(this)
@@ -62,10 +70,18 @@ class MainActivity : ComponentActivity() {
         subscribeToStatusActions()
         enableActiveScreen()
         startWDService()
-        checkIsWacthDogRunning()
+        checkIsWatchDogRunning()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             checkPermissionOverlay()
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                101
+            )
         }
 
         setContent {
@@ -80,8 +96,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.M)
-    private fun checkIsWacthDogRunning() {
+    private fun checkIsWatchDogRunning() {
         serviceScope.launch {
             while (true) {
                 delay(120000)
@@ -90,9 +105,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.M)
     private fun isWDRunning() {
-        if (!checkWatchDogStatus()) {
+        if (!deviceUtils.checkWDStatus()) {
             println("WatchDog Not Running")
             Firebase.performance.newTrace("watchdog_app_not_running").trace {
                 // Update scenario.
@@ -104,25 +118,6 @@ class MainActivity : ComponentActivity() {
         } else {
             println("WatchDog Running")
         }
-    }
-
-    private fun checkWatchDogStatus(): Boolean {
-        var running = false
-        val uri = Uri.parse("content://com.geniusdevelop.watchdog.provider/app_a_state")
-        val cursor = contentResolver.query(uri, null, null, null, null)
-
-        cursor?.let {
-            if (it.moveToFirst()) {
-                val appState = it.getInt(it.getColumnIndexOrThrow("appState"))
-                if (appState == 1) {
-                    running = true
-                }
-            }
-            it.close()
-        } ?: run {
-            println("I can verify WatchDog state")
-        }
-        return running
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
@@ -139,15 +134,10 @@ class MainActivity : ComponentActivity() {
 
     private fun isBatteryOptimizationIgnored(context: Context): Boolean {
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            powerManager.isIgnoringBatteryOptimizations(packageName)
-        } else {
-            // Battery optimization doesn't exist on versions below Marshmallow
-            true
-        }
+        return powerManager.isIgnoringBatteryOptimizations(packageName)
     }
 
-    @RequiresApi(Build.VERSION_CODES.M)
+    @SuppressLint("BatteryLife")
     fun requestDisableBatteryOptimizationForApp(context: Context) {
         println(packageName)
         val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
@@ -215,14 +205,12 @@ class MainActivity : ComponentActivity() {
         serviceScope.launch {
             val wdPackageName = "com.geniusdevelop.watchdog.${BuildConfig.BUILD_TYPE}"
             if (deviceUtils.isAppInstalled(packageManager, wdPackageName)) {
-                if (!deviceUtils.checkWDStatus()) {
-                    val intent = Intent("com.geniusdevelop.watchdog.START_FOREGROUND_SERVICE")
-                    intent.setPackage(wdPackageName)  // The package name of App A
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        baseContext.startForegroundService(intent)
-                    } else {
-                        baseContext.startService(intent)
-                    }
+                val intent = Intent("com.geniusdevelop.watchdog.START_FOREGROUND_SERVICE")
+                intent.setPackage(wdPackageName)  // The package name of App A
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    baseContext.startForegroundService(intent)
+                } else {
+                    baseContext.startService(intent)
                 }
             } else {
                 println("WatchDog Not installed")

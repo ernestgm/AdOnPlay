@@ -20,9 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextMotion
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.tv.material3.ExperimentalTvMaterial3Api
@@ -35,7 +33,7 @@ import com.geniusdevelops.adonplay.app.viewmodels.AppUiState
 import com.geniusdevelops.adonplay.app.viewmodels.AppViewModel
 import com.geniusdevelops.adonplay.app.views.PlayerScreen
 import com.geniusdevelops.adonplay.ui.theme.common.ErrorWithButton
-import com.geniusdevelops.adonplay.ui.theme.common.Loading
+import com.geniusdevelops.adonplay.ui.theme.common.LogoLoading
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalTvMaterial3Api::class)
@@ -121,11 +119,7 @@ fun App(
         }
 
         is AppUiState.Loading -> {
-            Loading(
-                text = "", modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp)
-            )
+            LogoLoading()
         }
 
         is AppUiState.Error -> {

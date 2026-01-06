@@ -16,12 +16,11 @@
 
 package com.geniusdevelops.adonplay.app.util
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import android.net.Uri
-import android.os.Build
 import android.provider.Settings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -29,10 +28,12 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
 import kotlin.random.Random
+import androidx.core.net.toUri
 
 class DeviceUtils(
     private val context: Context,
 ) {
+    @SuppressLint("HardwareIds")
     fun getDeviceId(): String {
         return Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
     }
@@ -46,7 +47,6 @@ class DeviceUtils(
             packageManager.getPackageInfo(packageName, 0)
             true
         } catch (e: PackageManager.NameNotFoundException) {
-            //FirebaseCrashlytics.getInstance().recordException(e)
             false
         }
     }
@@ -59,21 +59,15 @@ class DeviceUtils(
         val connectivityManager =
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val network = connectivityManager.activeNetwork ?: return false
-            val networkCapabilities =
-                connectivityManager.getNetworkCapabilities(network) ?: return false
+        val network = connectivityManager.activeNetwork ?: return false
+        val networkCapabilities =
+            connectivityManager.getNetworkCapabilities(network) ?: return false
 
-            return when {
-                networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
-                networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
-                networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
-                else -> false
-            }
-        } else {
-            // For devices below Android M (API level 23)
-            val activeNetworkInfo = connectivityManager.activeNetworkInfo
-            return activeNetworkInfo?.isConnected == true
+        return when {
+            networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+            networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+            networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+            else -> false
         }
     }
 
@@ -96,7 +90,7 @@ class DeviceUtils(
 
     fun checkWDStatus(): Boolean {
         var running = false
-        val uri = Uri.parse("content://com.geniusdevelop.watchdog.provider/app_a_state")
+        val uri = "content://com.geniusdevelop.watchdog.provider/app_a_state".toUri()
         val cursor = context.contentResolver.query(uri, null, null, null, null)
 
         cursor?.let {

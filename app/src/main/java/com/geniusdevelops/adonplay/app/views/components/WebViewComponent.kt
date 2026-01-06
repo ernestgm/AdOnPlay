@@ -5,7 +5,6 @@ import android.webkit.CookieManager
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -17,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.geniusdevelops.adonplay.ui.theme.common.Loading
+import com.geniusdevelops.adonplay.ui.theme.common.LogoLoading
 
 @Composable
 fun WebViewWithCookies(
@@ -27,12 +26,7 @@ fun WebViewWithCookies(
     var pageLoaded by remember { mutableFloatStateOf(0f) }
 
     if (pageLoaded == 0F) {
-        Loading(
-            text = "",
-            modifier = Modifier
-                .absoluteOffset()
-                .fillMaxSize()
-        )
+        LogoLoading()
     }
 
     AndroidView(

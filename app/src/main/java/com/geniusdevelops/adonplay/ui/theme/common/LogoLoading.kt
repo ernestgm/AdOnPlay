@@ -16,43 +16,52 @@
 
 package com.geniusdevelops.adonplay.ui.theme.common
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.ExperimentalTvMaterial3Api
-import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.Text
+import com.geniusdevelops.adonplay.R
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun Loading(
-    text: String = "Loading",
-    modifier: Modifier = Modifier,
-    style: TextStyle = MaterialTheme.typography.displaySmall
-) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+fun LogoLoading() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(all = 16.dp),
+        contentAlignment = Alignment.Center
+    ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (text.isNotEmpty()) {
-                Text(
-                    text = text,
-                    style = style,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-            }
-            CircularProgressIndicator(
+            Image(
                 modifier = Modifier
-                    .padding(20.dp),
-                color = MaterialTheme.colorScheme.primary
+                    .width(300.dp)
+                    .padding(all = 20.dp),
+                painter = painterResource(id = R.drawable.ic_adonplay),
+                contentDescription = ""
+            )
+            Spacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(30.dp)
+            )
+            Loading(
+                text = "", modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp)
             )
         }
-
     }
 }

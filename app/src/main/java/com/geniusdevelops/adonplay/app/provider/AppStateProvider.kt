@@ -5,13 +5,14 @@ import android.content.ContentValues
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
+import androidx.core.net.toUri
 
 // AppAContentProvider.kt en App A
 class AppStateProvider : ContentProvider() {
 
     companion object {
         const val AUTHORITY = "com.geniusdevelops.adonplay.provider"
-        val CONTENT_URI: Uri = Uri.parse("content://$AUTHORITY/app_a_state")
+        val CONTENT_URI: Uri = "content://$AUTHORITY/app_a_state".toUri()
 
         private const val APP_STATE_RUNNING = 1
         private const val APP_STATE_STOPPED = 0
