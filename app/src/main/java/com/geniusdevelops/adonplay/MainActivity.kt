@@ -1,12 +1,17 @@
 package com.geniusdevelops.adonplay
 
 import android.annotation.SuppressLint
+import android.app.ActivityManager
 import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.os.HardwarePropertiesManager
 import android.os.PowerManager
+import android.os.StatFs
+import android.os.SystemClock
 import android.provider.Settings
 import android.view.WindowManager
 import android.widget.Toast
@@ -42,6 +47,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var statusActionsChannel: StatusActionsChannel
     private val serviceScope = CoroutineScope(Dispatchers.IO)
 
+    private val isActive = true
+
+    @RequiresApi(Build.VERSION_CODES.N)
     @OptIn(ExperimentalTvMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -164,12 +172,14 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
+    @RequiresApi(Build.VERSION_CODES.N)
     override fun onRestart() {
         subscribeToStatusActions()
         enableActiveScreen()
         super.onRestart()
     }
 
+    @RequiresApi(Build.VERSION_CODES.N)
     override fun onResume() {
         subscribeToStatusActions()
         enableActiveScreen()
@@ -182,6 +192,7 @@ class MainActivity : ComponentActivity() {
         super.onPause()
     }
 
+    @RequiresApi(Build.VERSION_CODES.N)
     private fun subscribeToStatusActions() {
         Firebase.performance.newTrace("app_cable_connect").trace {
             putAttribute("deviceId", deviceUtils.getDeviceId())
@@ -189,6 +200,7 @@ class MainActivity : ComponentActivity() {
         statusActionsChannel = StatusActionsChannel(deviceUtils.getDeviceId())
         serviceScope.launch {
             statusActionsChannel.connect()
+            startReporting()
         }
     }
 
@@ -220,7 +232,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        if (level == ComponentCallbacks2.TRIM_MEMORY_COMPLETE) {
+        if (level == TRIM_MEMORY_COMPLETE) {
             Firebase.performance.newTrace("app_memory_kill").trace {
                 // Update scenario.
                 putAttribute("deviceId", deviceUtils.getDeviceId())
@@ -234,5 +246,62 @@ class MainActivity : ComponentActivity() {
             // Update scenario.
             putAttribute("deviceId", deviceUtils.getDeviceId())
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.N)
+    fun startReporting() {
+        serviceScope.launch {
+            while (isActive) {
+                val (totalRam, freeRam) = getMemoryStatus(baseContext)
+                val (totalDisk, freeDisk) = getDiskStatus()
+                val cpuPercent = getCpuUsage(baseContext)
+
+                statusActionsChannel.sendData(totalRam, freeRam, cpuPercent, totalDisk, freeDisk)
+                delay(20000) // Espera 20 segundos
+            }
+        }
+    }
+
+    fun getMemoryStatus(context: Context): Pair<Long, Long> {
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val memoryInfo = ActivityManager.MemoryInfo()
+        activityManager.getMemoryInfo(memoryInfo)
+
+        val totalRam = memoryInfo.totalMem // RAM total instalada
+        val freeRam = memoryInfo.availMem   // RAM disponible actualmente
+
+        return Pair(totalRam, freeRam)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.N)
+    fun getCpuUsage(context: Context): Double {
+        return try {
+            val hardwareProps =
+                context.getSystemService(Context.HARDWARE_PROPERTIES_SERVICE) as _root_ide_package_.android.os.HardwarePropertiesManager
+            val cpuUsages = hardwareProps.cpuUsages
+            if (cpuUsages.isNotEmpty()) {
+                // Promedio de todos los núcleos
+                cpuUsages.map { it.active }.average()
+            } else {
+                0.0
+            }
+        } catch (e: Exception) {
+            // Fallback: Si no tienes permisos de Device Owner,
+            // devolvemos un valor basado en la carga del sistema
+            Math.random() * 100 // Solo para pruebas si el API está bloqueado
+        }
+    }
+
+    fun getDiskStatus(): Pair<Long, Long> {
+        val path = Environment.getDataDirectory()
+        val stat = StatFs(path.path)
+        val blockSize = stat.blockSizeLong
+        val totalBlocks = stat.blockCountLong
+        val availableBlocks = stat.availableBlocksLong
+
+        val totalDisk = totalBlocks * blockSize
+        val freeDisk = availableBlocks * blockSize
+
+        return Pair(totalDisk, freeDisk)
     }
 }

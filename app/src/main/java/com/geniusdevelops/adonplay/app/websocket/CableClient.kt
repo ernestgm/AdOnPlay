@@ -3,6 +3,7 @@ import android.os.Looper
 import android.util.JsonReader
 import android.util.Log
 import com.geniusdevelops.adonplay.BuildConfig
+import com.geniusdevelops.adonplay.app.util.DeviceInfo
 import com.geniusdevelops.adonplay.app.util.parseJsonToMap
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
@@ -38,7 +39,7 @@ open class CableClient(
                 val subscribeMessage = """
                     {
                       "command": "subscribe",
-                      "identifier": "{\"channel\":\"${channel}\",\"status\":1}"
+                      "identifier": "{\"channel\":\"${channel}\"}"
                     }
                 """.trimIndent()
 
@@ -65,6 +66,19 @@ open class CableClient(
             }
         })
     }
+
+    fun sendMessage(channel: String, data: DeviceInfo) {
+        val message = """
+                    {
+                      "command": "message",
+                      "identifier": "{\"channel\":\"${channel}\"}",
+                      "data": "{\"device_id\":\"${deviceId}\",\"total_ram\":${data.totalRam},\"free_ram\":${data.freeRam},\"cpu_usage\":${data.cpuUsage},\"total_disk\":${data.totalDisk},\"free_disk\":${data.freeDisk}}"
+                    }
+                """.trimIndent()
+        Log.d("Cable Status", "Data-> ${message}")
+        webSocket?.send(message)
+    }
+
 
     private fun attemptReconnect(
         channel: String,
