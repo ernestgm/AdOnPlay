@@ -16,19 +16,29 @@
 
 package com.geniusdevelops.adonplay.app.util
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.app.ActivityManager
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Context.ALARM_SERVICE
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.provider.Settings
+import androidx.annotation.RequiresPermission
+import androidx.compose.ui.text.intl.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
 import kotlin.random.Random
-import androidx.core.net.toUri
+import com.geniusdevelops.adonplay.MainActivity
+import kotlin.math.log10
+import kotlin.math.pow
 
 class DeviceUtils(
     private val context: Context,
@@ -88,22 +98,60 @@ class DeviceUtils(
         }
     }
 
-    fun checkWDStatus(): Boolean {
-        var running = false
-        val uri = "content://com.geniusdevelop.watchdog.provider/app_a_state".toUri()
-        val cursor = context.contentResolver.query(uri, null, null, null, null)
+    fun getMemoryStatus(): Pair<Long, Long> {
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val memoryInfo = ActivityManager.MemoryInfo()
+        activityManager.getMemoryInfo(memoryInfo)
 
-        cursor?.let {
-            if (it.moveToFirst()) {
-                val appState = it.getInt(it.getColumnIndexOrThrow("appState"))
-                if (appState == 1) {
-                    running = true
-                }
-            }
-            it.close()
-        } ?: run {
-            println("I can verify player state")
+        val totalRam = memoryInfo.totalMem // RAM total instalada
+        val freeRam = memoryInfo.availMem   // RAM disponible actualmente
+
+        return Pair(totalRam, freeRam)
+    }
+
+    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
+    fun scheduleKeepAliveRestart() {
+        val (totalRam, freeRam) = getMemoryStatus()
+        val intent = Intent(context, MainActivity::class.java).apply {
+            addFlags(
+                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                        Intent.FLAG_ACTIVITY_CLEAR_TASK or
+                        Intent.FLAG_ACTIVITY_NEW_TASK
+            )
+            putExtra("crash_detected", true)
+            putExtra("is_restarted", true)
+            putExtra("free_memory", freeRam)
+            putExtra("total_memory", totalRam)
         }
-        return running
+
+        val pendingIntent = PendingIntent.getActivity(
+            context, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+
+        val alarmManager = context.getSystemService(ALARM_SERVICE) as AlarmManager
+
+        // Programamos el reinicio para dentro de 1 minuto
+        // Si la app sigue viva en 20s, este método se volverá a llamar y sobrescribirá la alarma
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            System.currentTimeMillis() + 60000, // 60 segundos
+            pendingIntent
+        )
+    }
+
+    @SuppressLint("DefaultLocale")
+    fun formatBytes(bytes: Long): String {
+        if (bytes < 1024) return "$bytes B"
+
+        val units = arrayOf("B", "KB", "MB", "GB", "TB")
+        val digitGroups = (log10(bytes.toDouble()) / log10(1024.0)).toInt()
+
+        return String.format(
+            "%.1f %s",
+            bytes / 1024.0.pow(digitGroups.toDouble()),
+            units[digitGroups]
+        ).replace(",", ".") // Asegura el formato con punto decimal
     }
 }

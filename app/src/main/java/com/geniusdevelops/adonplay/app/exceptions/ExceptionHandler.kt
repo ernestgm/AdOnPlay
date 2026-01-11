@@ -1,9 +1,13 @@
 package com.geniusdevelops.adonplay.app.exceptions
 
+import android.Manifest
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Process
+import androidx.annotation.RequiresPermission
+import com.geniusdevelops.adonplay.app.util.DeviceUtils
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import kotlin.system.exitProcess
 
@@ -12,6 +16,7 @@ class MyExceptionHandler(
     private val activityToStart: Class<*>
 ) : Thread.UncaughtExceptionHandler {
 
+    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         // 1. Enviar el error manualmente a Firebase
         // Podemos añadir llaves personalizadas para dar más contexto
@@ -25,27 +30,11 @@ class MyExceptionHandler(
         // antes de que matemos el proceso.
         Thread.sleep(500)
 
-        // 3. Configurar el reinicio
-        val intent = Intent(context, activityToStart).apply {
-            addFlags(
-                Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                        Intent.FLAG_ACTIVITY_CLEAR_TASK or
-                        Intent.FLAG_ACTIVITY_NEW_TASK
-            )
-            putExtra("crash_detected", true)
-            putExtra("is_restarted", true)
-        }
-
-        val pendingIntent = PendingIntent.getActivity(
-            context, 0, intent,
-            PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        alarmManager.set(AlarmManager.RTC, System.currentTimeMillis() + 1000, pendingIntent)
+        val deviceUtils = DeviceUtils(context)
+        deviceUtils.scheduleKeepAliveRestart()
 
         // 4. Terminar el proceso
-        android.os.Process.killProcess(android.os.Process.myPid())
+        Process.killProcess(Process.myPid())
         exitProcess(10)
     }
 }

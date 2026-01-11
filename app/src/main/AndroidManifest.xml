@@ -17,10 +17,14 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
+    <queries>
+        <package android:name="com.geniusdevelop.watchdog.debug" />
+        <package android:name="com.geniusdevelop.watchdog.release" />
+        <package android:name="com.geniusdevelop.watchdog" />
+    </queries>
 
     <application
         android:name=".MyApplication"
@@ -55,11 +59,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
-        <provider
-            android:name=".app.provider.AppStateProvider"
-            android:authorities="com.geniusdevelops.adonplay.provider"
-            android:exported="true"
-            android:grantUriPermissions="true" />
 
         <uses-library
             android:name="org.apache.http.legacy"

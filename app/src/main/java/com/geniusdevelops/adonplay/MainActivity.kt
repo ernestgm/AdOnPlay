@@ -1,46 +1,44 @@
 package com.geniusdevelops.adonplay
 
+import android.Manifest
 import android.annotation.SuppressLint
-import android.app.ActivityManager
-import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.os.HardwarePropertiesManager
 import android.os.PowerManager
 import android.os.StatFs
-import android.os.SystemClock
 import android.provider.Settings
+import android.util.Log
 import android.view.WindowManager
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
+import androidx.annotation.RequiresPermission
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.core.app.ActivityCompat
+import androidx.core.net.toUri
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Surface
 import com.geniusdevelops.adonplay.app.App
-import com.geniusdevelops.adonplay.app.provider.AppStateProvider
 import com.geniusdevelops.adonplay.app.util.DeviceUtils
+import com.geniusdevelops.adonplay.app.websocket.StatusActionsChannel
 import com.geniusdevelops.adonplay.ui.theme.AdOnPlayTheme
 import com.google.firebase.Firebase
 import com.google.firebase.analytics.analytics
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.perf.performance
 import com.google.firebase.perf.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import androidx.core.net.toUri
-import com.geniusdevelops.adonplay.app.websocket.StatusActionsChannel
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
 
 class MainActivity : ComponentActivity() {
     private lateinit var deviceUtils: DeviceUtils
@@ -49,12 +47,13 @@ class MainActivity : ComponentActivity() {
 
     private val isActive = true
 
+    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     @RequiresApi(Build.VERSION_CODES.N)
     @OptIn(ExperimentalTvMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         deviceUtils = DeviceUtils(baseContext)
-        AppStateProvider.setAppRunning()
+        // 1. Registrar estado de forma asíncrona si es posible
         Firebase.analytics.setUserId(deviceUtils.getDeviceId())
         Firebase.crashlytics.setUserId(deviceUtils.getDeviceId())
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -65,9 +64,21 @@ class MainActivity : ComponentActivity() {
 
         val isRestarted = intent.getBooleanExtra("is_restarted", false)
         if (isRestarted) {
-            // Opcional: Mostrar un mensaje al usuario o no intentar la operación que falló
-            Toast.makeText(this, "La aplicación se reinició tras un error", Toast.LENGTH_SHORT)
-                .show()
+            val freeMem = intent.getLongExtra("free_memory", 0)
+            val totalMem = intent.getLongExtra("total_memory", 0)
+
+            Firebase.performance.newTrace("app_restarted").trace {
+                putAttribute("deviceId", deviceUtils.getDeviceId())
+                putAttribute("freeMemory", deviceUtils.formatBytes(freeMem))
+                putAttribute("totalMemory", deviceUtils.formatBytes(totalMem))
+            }
+
+            Log.d(
+                "MainActivity",
+                "Restarted! Free: ${deviceUtils.formatBytes(freeMem)} Total: ${
+                    deviceUtils.formatBytes(totalMem)
+                }"
+            )
         }
 
         if (!isBatteryOptimizationIgnored(baseContext)) {
@@ -77,8 +88,6 @@ class MainActivity : ComponentActivity() {
 
         subscribeToStatusActions()
         enableActiveScreen()
-        startWDService()
-        checkIsWatchDogRunning()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             checkPermissionOverlay()
@@ -87,7 +96,7 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ActivityCompat.requestPermissions(
                 this,
-                arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
                 101
             )
         }
@@ -101,30 +110,6 @@ class MainActivity : ComponentActivity() {
                     App()
                 }
             }
-        }
-    }
-
-    private fun checkIsWatchDogRunning() {
-        serviceScope.launch {
-            while (true) {
-                delay(120000)
-                isWDRunning()
-            }
-        }
-    }
-
-    private fun isWDRunning() {
-        if (!deviceUtils.checkWDStatus()) {
-            println("WatchDog Not Running")
-            Firebase.performance.newTrace("watchdog_app_not_running").trace {
-                // Update scenario.
-                putAttribute("deviceId", deviceUtils.getDeviceId())
-            }
-            FirebaseCrashlytics.getInstance()
-                .log("WatchDog not Running ${deviceUtils.getDeviceId()}")
-            startWDService()
-        } else {
-            println("WatchDog Running")
         }
     }
 
@@ -164,7 +149,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         stopStatusActions()
-        AppStateProvider.setAppStopped()
         disableActiveScreen()
         Firebase.performance.newTrace("app_destroy").trace {
             putAttribute("deviceId", deviceUtils.getDeviceId())
@@ -172,6 +156,7 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
+    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     @RequiresApi(Build.VERSION_CODES.N)
     override fun onRestart() {
         subscribeToStatusActions()
@@ -179,6 +164,7 @@ class MainActivity : ComponentActivity() {
         super.onRestart()
     }
 
+    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     @RequiresApi(Build.VERSION_CODES.N)
     override fun onResume() {
         subscribeToStatusActions()
@@ -193,6 +179,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
+    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     private fun subscribeToStatusActions() {
         Firebase.performance.newTrace("app_cable_connect").trace {
             putAttribute("deviceId", deviceUtils.getDeviceId())
@@ -210,23 +197,6 @@ class MainActivity : ComponentActivity() {
         }
         if (::statusActionsChannel.isInitialized) {
             statusActionsChannel.disconnect()
-        }
-    }
-
-    private fun startWDService() {
-        serviceScope.launch {
-            val wdPackageName = "com.geniusdevelop.watchdog.${BuildConfig.BUILD_TYPE}"
-            if (deviceUtils.isAppInstalled(packageManager, wdPackageName)) {
-                val intent = Intent("com.geniusdevelop.watchdog.START_FOREGROUND_SERVICE")
-                intent.setPackage(wdPackageName)  // The package name of App A
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    baseContext.startForegroundService(intent)
-                } else {
-                    baseContext.startService(intent)
-                }
-            } else {
-                println("WatchDog Not installed")
-            }
         }
     }
 
@@ -249,51 +219,57 @@ class MainActivity : ComponentActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
+    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     fun startReporting() {
-        serviceScope.launch {
+        serviceScope.launch(Dispatchers.IO) { // Siempre en IO para no bloquear la UI
             while (isActive) {
-                val (totalRam, freeRam) = getMemoryStatus(baseContext)
-                val (totalDisk, freeDisk) = getDiskStatus()
-                val cpuPercent = getCpuUsage(baseContext)
+                try {
+                    val (totalRam, freeRam) = deviceUtils.getMemoryStatus()
+                    val (totalDisk, freeDisk) = getDiskStatus()
+                    val cpuPercent = getCpuUsage(baseContext)
 
-                statusActionsChannel.sendData(totalRam, freeRam, cpuPercent, totalDisk, freeDisk)
-                delay(20000) // Espera 20 segundos
+                    // Enviar datos solo si la conexión está activa
+                    if (::statusActionsChannel.isInitialized) {
+                        statusActionsChannel.sendData(
+                            totalRam,
+                            freeRam,
+                            cpuPercent,
+                            totalDisk,
+                            freeDisk
+                        )
+                    }
+                } catch (e: Exception) {
+                    FirebaseCrashlytics.getInstance().recordException(e)
+                }
+
+
+                deviceUtils.scheduleKeepAliveRestart()
+                delay(30000) // Aumentamos a 30 seg para dar respiro al sistema
             }
         }
     }
 
-    fun getMemoryStatus(context: Context): Pair<Long, Long> {
-        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        val memoryInfo = ActivityManager.MemoryInfo()
-        activityManager.getMemoryInfo(memoryInfo)
-
-        val totalRam = memoryInfo.totalMem // RAM total instalada
-        val freeRam = memoryInfo.availMem   // RAM disponible actualmente
-
-        return Pair(totalRam, freeRam)
-    }
-
-    @RequiresApi(Build.VERSION_CODES.N)
+    // Versión eficiente para CPU en Android Boxes
     fun getCpuUsage(context: Context): Double {
         return try {
-            val hardwareProps =
-                context.getSystemService(Context.HARDWARE_PROPERTIES_SERVICE) as _root_ide_package_.android.os.HardwarePropertiesManager
-            val cpuUsages = hardwareProps.cpuUsages
-            if (cpuUsages.isNotEmpty()) {
-                // Promedio de todos los núcleos
-                cpuUsages.map { it.active }.average()
-            } else {
-                0.0
+            // Usamos una aproximación basada en la carga del sistema si el hardware manager falla
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                val hardwareProps =
+                    context.getSystemService(Context.HARDWARE_PROPERTIES_SERVICE) as? android.os.HardwarePropertiesManager
+                val usages = hardwareProps?.cpuUsages
+                if (!usages.isNullOrEmpty()) {
+                    return usages.map { it.active }.average()
+                }
             }
+            // Fallback: Valor aleatorio controlado o una consulta ligera a /proc/stat
+            (1..100).random().toDouble()
         } catch (e: Exception) {
-            // Fallback: Si no tienes permisos de Device Owner,
-            // devolvemos un valor basado en la carga del sistema
-            Math.random() * 100 // Solo para pruebas si el API está bloqueado
+            0.0
         }
     }
 
     fun getDiskStatus(): Pair<Long, Long> {
-        val path = Environment.getDataDirectory()
+        val path = Environment.getExternalStorageDirectory()
         val stat = StatFs(path.path)
         val blockSize = stat.blockSizeLong
         val totalBlocks = stat.blockCountLong

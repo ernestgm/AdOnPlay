@@ -3,6 +3,7 @@ package com.geniusdevelops.adonplay
 import android.app.Application
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import com.geniusdevelops.adonplay.app.exceptions.MyExceptionHandler
 import com.geniusdevelops.adonplay.app.service.HighPriorityService
 
