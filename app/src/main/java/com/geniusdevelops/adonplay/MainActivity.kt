@@ -47,7 +47,6 @@ class MainActivity : ComponentActivity() {
 
     private val isActive = true
 
-    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     @RequiresApi(Build.VERSION_CODES.N)
     @OptIn(ExperimentalTvMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -156,7 +155,6 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     @RequiresApi(Build.VERSION_CODES.N)
     override fun onRestart() {
         subscribeToStatusActions()
@@ -164,7 +162,6 @@ class MainActivity : ComponentActivity() {
         super.onRestart()
     }
 
-    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     @RequiresApi(Build.VERSION_CODES.N)
     override fun onResume() {
         subscribeToStatusActions()
@@ -179,7 +176,6 @@ class MainActivity : ComponentActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
-    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     private fun subscribeToStatusActions() {
         Firebase.performance.newTrace("app_cable_connect").trace {
             putAttribute("deviceId", deviceUtils.getDeviceId())
@@ -219,10 +215,12 @@ class MainActivity : ComponentActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
-    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     fun startReporting() {
         serviceScope.launch(Dispatchers.IO) { // Siempre en IO para no bloquear la UI
             while (isActive) {
+                deviceUtils.scheduleKeepAliveRestart()
+                delay(30000)
+                // Aumentamos a 30 seg para dar respiro al sistema
                 try {
                     val (totalRam, freeRam) = deviceUtils.getMemoryStatus()
                     val (totalDisk, freeDisk) = getDiskStatus()
@@ -241,10 +239,6 @@ class MainActivity : ComponentActivity() {
                 } catch (e: Exception) {
                     FirebaseCrashlytics.getInstance().recordException(e)
                 }
-
-
-                deviceUtils.scheduleKeepAliveRestart()
-                delay(30000) // Aumentamos a 30 seg para dar respiro al sistema
             }
         }
     }

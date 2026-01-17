@@ -45,15 +45,21 @@ android {
 
     productFlavors {
         create("prod") {
-            buildConfigField("String", "BASE_URL", "\"\"")
-            buildConfigField("String", "WS_BASE_URL", "\"\"")
+            buildConfigField(
+                "String", "BASE_URL",
+                "\"https://prod-api-adonplay.geniusdevelops.com/api/v1/\""
+            )
             buildConfigField(
                 "String", "PLAYER_BASE_URL",
-                "\"http://10.0.2.2:3001\""
+                "\"https://prod-player-adonplay.geniusdevelops.com/\""
             )
             buildConfigField(
                 "String", "PLAYER_DOMAIN",
-                "\"10.0.2.2\""
+                "\"prod-player-adonplay.geniusdevelops.com/\""
+            )
+            buildConfigField(
+                "String", "WS_BASE_URL",
+                "\"wss://prod-ws-adonplay.geniusdevelops.com/cable/\""
             )
             dimension = "api"
         }

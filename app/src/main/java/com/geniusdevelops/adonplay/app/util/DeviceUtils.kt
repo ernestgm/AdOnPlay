@@ -27,18 +27,19 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.os.Build
 import android.provider.Settings
 import androidx.annotation.RequiresPermission
-import androidx.compose.ui.text.intl.Locale
+import com.geniusdevelops.adonplay.MainActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
-import kotlin.random.Random
-import com.geniusdevelops.adonplay.MainActivity
 import kotlin.math.log10
 import kotlin.math.pow
+import kotlin.random.Random
+
 
 class DeviceUtils(
     private val context: Context,
@@ -109,7 +110,6 @@ class DeviceUtils(
         return Pair(totalRam, freeRam)
     }
 
-    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     fun scheduleKeepAliveRestart() {
         val (totalRam, freeRam) = getMemoryStatus()
         val intent = Intent(context, MainActivity::class.java).apply {
@@ -132,6 +132,13 @@ class DeviceUtils(
 
         val alarmManager = context.getSystemService(ALARM_SERVICE) as AlarmManager
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!alarmManager.canScheduleExactAlarms()) {
+                // Redirect user to settings to grant the permission
+                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                context.startActivity(intent)
+            }
+        }
         // Programamos el reinicio para dentro de 1 minuto
         // Si la app sigue viva en 20s, este método se volverá a llamar y sobrescribirá la alarma
         alarmManager.setExactAndAllowWhileIdle(
